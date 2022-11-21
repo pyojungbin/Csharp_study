@@ -1,0 +1,270 @@
+﻿using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
+using static System.Console;
+
+namespace chap9
+{
+    //프로퍼티 - 데이터 오염에 대해 효과적. 
+    class BirthdayInfo
+    {
+        private string name;
+        private DateTime birthday;
+
+        public string Name
+        {
+            get { return name; }
+            set { name = value; }
+        }
+        public DateTime Birthday
+        {
+            get { return birthday; }
+            set { birthday = value; }
+        }
+        public int Age
+        {
+            get { return new DateTime(DateTime.Now.Subtract(birthday).Ticks).Year; }
+        }
+    }
+
+    //자동프로퍼티
+    class BirthdayInfo2
+    {
+        public string Name { get; set; } = "Unknown";
+        public DateTime Birthday { get; set; } = new DateTime(1, 1, 1);
+        public int Age
+        {
+            get { return new DateTime(DateTime.Now.Subtract(Birthday).Ticks).Year; }
+        }
+    }
+
+    //초기화 전용 프로퍼티 
+    class Transaction
+    {
+        public string From { get; init; }
+        public string To { get; init; }
+        public int Amount { get; init; }
+
+        public override string ToString()
+        {
+            return $"{From,-10}->{To,-10} : {Amount}";
+        }
+    }
+
+    //레코드
+    //record 키워드
+    //값 형식처럼 다룰수 있는 불변 참조 형식
+    
+    //with를 활용한 레코드 복사 
+    record RTransaction
+    {
+        public string From { get; init; }
+        public string To { get; init; }
+        public int Amount { get; init; }
+
+        public override string ToString()
+        {
+            return $"{From,-10} -> {To,-10} : {Amount}";
+        }
+    }
+
+    //인터페이스의 프로퍼티
+    interface INamedValue
+    {
+        string Name { get; set; }
+        string Value { get; set; }
+
+    }
+    class NamedValue : INamedValue
+    {
+        public string Name { get; set; }
+        public string Value { get; set; }
+    }
+
+    //추상클래스의 프로퍼티
+    abstract class Product
+    {
+        private static int serial = 0;
+        public string SerialID
+        {
+            get { return String.Format("{0:d5}", serial++); }
+        }
+        abstract public DateTime ProductDate
+        {
+            get;set;
+        }
+    }
+    class MyProduct : Product
+    {
+        public override DateTime ProductDate 
+        {
+            get;set;
+        }
+    }
+
+    //예제 9-1
+    class NameCard
+    {
+        private int age;
+        private string name;
+
+        public int Age
+        {
+            get;set;
+        }
+        public string Name
+        {
+            get;set;
+        }
+    }
+
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            BirthdayInfo birth = new BirthdayInfo();
+            birth.Name = "서현";
+            birth.Birthday = new DateTime(1991, 12, 15);
+            WriteLine($"Name:{birth.Name}");
+            WriteLine($"BirthDat:{birth.Birthday.ToShortDateString()}");
+            WriteLine($"Age : {birth.Age}");
+
+            //자동프로퍼티
+            WriteLine("\n--자동 프로퍼티 --");
+            BirthdayInfo2 birth2 = new BirthdayInfo2();
+            WriteLine($"Name: {birth2.Name}");
+            WriteLine($"BirthDay:{birth2.Birthday}");
+            WriteLine($"Age : {birth2.Age}");
+
+            birth2.Name = "진우";
+            birth2.Birthday = new DateTime(2010, 5, 5);
+            WriteLine($"Name: {birth2.Name}");
+            WriteLine($"BirthDay: {birth2.Birthday}");
+            WriteLine($"Age:{birth2.Age}");
+
+            //프로퍼티와 생성자 
+            WriteLine("\n--프로퍼티와 생성자--");
+            BirthdayInfo birth3 = new BirthdayInfo()
+            {
+                Name = "기문",
+                Birthday = new DateTime(2017, 3, 8)
+            };
+            WriteLine($"Name: {birth3.Name}");
+            WriteLine($"BirthDay : {birth3.Birthday}");
+            WriteLine($"Age:{birth3.Age}");
+
+
+            //초기화 전용 프로퍼티 
+            WriteLine("\n--초기화전용 프로퍼티--");
+            Transaction t1 = new Transaction
+            {
+                From = "Alice",
+                To = "Bob",
+                Amount = 100
+            };
+            Transaction t2 = new Transaction
+            {
+                From = "Bob",
+                To = "Chalie",
+                Amount = 200
+            };
+            Transaction t3 = new Transaction
+            {
+                From = "Chalie",
+                To = "Alice",
+                Amount = 300
+            };
+
+            //t1.Amount = 300; - 초기화 이후에 발생하는 프로퍼티 수정은 허용되지 않음.
+
+            WriteLine(t1);
+            WriteLine(t2);
+            WriteLine(t3);
+
+
+            //with를 활용한 record 복사
+            WriteLine("\n-- with를 활용한 record 복사 --");
+
+            RTransaction tr1 = new RTransaction
+            {
+                From = "Alice",
+                To = "Bob",
+                Amount = 100
+            };
+            RTransaction tr2 = tr1 with { To = "Chaile" }; //with식은 tr1을 복사한후  to값만 변경한것 
+            RTransaction tr3 = tr2 with { From = "Dave", Amount = 30 };
+
+            WriteLine(tr1);
+            WriteLine(tr2);
+            WriteLine(tr3);
+
+            //무명형식
+            WriteLine("\n--무명형식--");
+
+            var a = new { Name = "박상현", Age = 123 };
+            WriteLine($"{a.Name} , {a.Age}");
+
+            var b = new { Subject = "수학", Scores = new int[] { 90, 80, 70, 60 } };
+
+            Write($"Subject:{b.Subject}, Scores: ");
+            foreach (var score in b.Scores)
+            {
+                Write($"{score} ");
+            }
+            WriteLine();
+
+            //인터페이스의 프로퍼티
+            WriteLine("\n --인터페이스의 프로퍼티--");
+            NamedValue name = new NamedValue()
+            {
+                Name = "이름",
+                Value = "박상현"
+            };
+            NamedValue height = new NamedValue()
+            {
+                Name = "키",
+                Value = "111cm"
+            };
+            NamedValue weight = new NamedValue()
+            {
+                Name = "몸무게",
+                Value = "55kg"
+            };
+
+            WriteLine($"{name.Name} : {name.Value}");
+            WriteLine($"{height.Name} : {height.Value}");
+            WriteLine($"{weight.Name} : {weight.Value}");
+
+            //--추상클래스의 프로퍼티
+            WriteLine(" -- 추상클래스의 프로퍼티 -- ");
+            Product product_1 = new MyProduct()
+            {
+                ProductDate = new DateTime(2018, 1, 1)
+            };
+            WriteLine("Product:{0} ,ProductDate:{1}", product_1.SerialID, product_1.ProductDate);
+
+            Product product_2 = new MyProduct()
+            {
+                ProductDate = new DateTime(2020, 3, 3)
+            };
+            WriteLine("Product:{0} ,ProductDate:{1}", product_2.SerialID, product_2.ProductDate);
+
+
+            //예제 9-1
+            WriteLine("예제 9-1 ");
+            NameCard nc = new NameCard()
+            {
+                Age = 24,
+                Name = "박상현"
+            };
+            WriteLine($"{nc.Age}, {nc.Name}");
+
+            //예제 9-2
+            WriteLine("예제 9 - 2");
+            var namecard = new { Name = "박상현", Age = "12" };
+            WriteLine($"이름: {namecard.Name}, 나이:{namecard.Age}");
+
+            var complex = new { Real = "3", Imaginary = "-12" };
+            WriteLine($"Real:{complex.Real}, Imaginary ={complex.Imaginary}");
+        }
+    }
+}
