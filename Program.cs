@@ -1,0 +1,478 @@
+﻿using System.Collections;
+using System.Runtime.ExceptionServices;
+using System.Runtime.Remoting;
+using System.Threading.Tasks.Sources;
+using static System.Console;
+
+namespace chap10
+{
+    internal class Program
+    {
+        //Array 여러가지 기능들
+        private static bool CheckPassed(int score)
+        {
+            return score > 60;
+        }
+
+        private static void Print(int value)
+        {
+            Write($"{value} ");
+        }
+
+        //배열 분할하기
+        static void PrintArray(System.Array array)
+        {
+            foreach(var e in array)
+            {
+                Write(e );
+            }
+            WriteLine();
+        }
+
+        //인덱서
+        class MyList
+        {
+            private int[] array;
+            public MyList()
+            {
+                array = new int[3];
+            }
+            public int this[int index]
+            {
+                get
+                {
+                    return array[index];
+                }
+                set
+                {
+                    if(index>= array.Length)
+                    {
+                        Array.Resize<int>(ref array, index + 1);
+                        WriteLine($"Array Resized: {array.Length}");
+                    }
+                    array[index] = value;
+                }
+            }
+            public int Length
+            {
+                get { return array.Length; }
+            }
+        }
+
+        //foreach가 가능한 객체 만들기 - yield
+        class MyEnumerator
+        {
+            int[] numbers = { 1, 2, 3, 4, 5 };
+            public IEnumerator GetEnumerator()
+            {
+                yield return numbers[0];
+                yield return numbers[1];
+                yield return numbers[2];
+                yield return numbers[3];
+                yield break;
+                yield return numbers[4];
+            }
+        }
+
+        //IEnumerator를 상속하는 클래스 구현
+        class MyList2 : IEnumerator, IEnumerable
+        {
+            private int[] array;
+            int position = -1;
+            public MyList2()
+            {
+                array = new int[5];
+            }
+            public int this[int index]
+            {
+                get
+                {
+                    return array[index];
+                }
+                set
+                {
+                    if(index >= array.Length)
+                    {
+                        Array.Resize<int>(ref array, index + 1);
+                        WriteLine($"Array Resized : {array.Length}");
+                    }
+                    array[index] = value;
+                }
+            }
+            //Ienumator 멤버
+            public object Current
+            {
+                get
+                {
+                    return array[position];
+                }
+            }
+            //IEnumerator 멤버
+            public bool MoveNext()
+            {
+                if(position == array.Length - 1)
+                {
+                    Reset();
+                    return false;
+                }
+                position++;
+                return (position < array.Length);
+            }
+            //IEnumerator 멤버
+            public void Reset()
+            {
+                position = -1;
+            }
+            //IEnumerable 멤버
+            public IEnumerator GetEnumerator()
+            {
+                return this;
+            }
+        }
+
+
+        static void Main(string[] args)
+        {
+            //배열
+            WriteLine("-- 배열 --");
+            int[] scores = new int[5];
+            //scores[0] = 80;
+            //scores[1] = 74;
+            //scores[2] = 81;
+            //scores[3] = 90;
+            //scores[4] = 34;
+            scores[0] = 80;
+            scores[1] = 74;
+            scores[2] = 81;
+            scores[^2] = 90;
+            scores[^1] = 34; //^연산자는 컬렉션의 마지막부터 역순으로 인덱스를 지정하는 기능을 가지고있다.
+
+
+            foreach(int score in scores)
+            {
+                WriteLine(score);
+            }
+            int sum = 0;
+            foreach(int score in scores)
+            {
+                sum += score;
+            }
+            int average = sum / scores.Length;
+
+            WriteLine($"SUM:{sum}, Average:{average}");
+
+            //배열 초기화
+            WriteLine("-- 배열 초기화 --");
+            string[] array1 = new string[3] { "안녕", "hello", "haloo" };
+            WriteLine("\narray1...");
+            foreach(string greeting in array1)
+            {
+                WriteLine($"{greeting}");
+            }
+
+            string[] array2 = new string[] { "안녕", "hhh", "aaa" };
+            WriteLine("\narray2...");
+            foreach(string greeting in array2)
+            {
+                WriteLine($"{greeting}");
+            }
+            string[] array3 = { "안녕", "ㅁㄴㅇㅁㄴ", "ㅂㅈㅂ" };
+            WriteLine("\narray3...");
+            foreach(string greeting in array3)
+            {
+                WriteLine($"{greeting}");
+            }
+
+            //System.Array
+            WriteLine("\n -- System.Array --");
+            int[] array = new int[] { 10, 20, 30, 40 };
+            WriteLine($"Type of array : {array.GetType()}");
+            WriteLine($"Base type of Array: {array.GetType().BaseType}");
+
+            //Array 여러가지 기능들
+            WriteLine("-- Array 여러가지 기능들 --");
+            int[] scoress = new int[] { 80, 74, 81, 90, 34 };
+            foreach(int score in scoress)
+            {
+                WriteLine($"{score}");
+            }
+            WriteLine();
+
+            Array.Sort(scoress);
+            Array.ForEach<int>(scores, new Action<int>(Print));
+            WriteLine();
+
+            WriteLine($"Number of Dimisions : {scoress.Rank}"); // 배열의 차원 - 1차원
+
+            WriteLine($"Binary Search: 81 is at" + $"{Array.BinarySearch<int>(scoress, 81)}"); //81이있는위치반환
+
+            WriteLine($"Linear Search : 90 is at" + $"{Array.IndexOf(scores, 90)}"); // 90의 인덱스 반환
+
+            WriteLine($"Everyone passed ? : " + $"{Array.TrueForAll<int>(scoress, CheckPassed)}"); //조건이 모두 충족되는지
+
+            int index = Array.FindIndex<int>(scoress, (score) => score < 60); //60보다 낮은 점수 인덱스 찾음
+
+            scoress[index] = 61;
+
+            WriteLine($"Everyone passed ? : " + $"{Array.TrueForAll(scoress, CheckPassed)}");// 60보다 낮은 인덱스들을 수정했으므로 참
+
+            WriteLine($"Old length of scoress : {scoress.GetLength(0)}");//배열에서 지정한 차원의 길이를 반환함.
+
+            Array.Resize<int>(ref scoress, 10); //배열의 용량을 10으로 증가
+            WriteLine($"New lenght of scoress : {scoress.Length}");
+
+            Array.ForEach<int>(scoress, new Action<int>(Print));
+            WriteLine();
+
+            Array.Clear(scoress, 3, 7); //배열의 요소를 초기화함 - 숫자는 0으로 논리는 false, 참조는 null로
+            Array.ForEach(scoress, new Action<int>(Print));
+            WriteLine();
+
+            int[] sliced = new int[3];
+            Array.Copy(scoress,0,sliced,0,3);
+            Array.ForEach<int>(sliced, new Action<int>(Print));
+            WriteLine();
+
+
+            //배열 분할하기
+            char[] arrayy = new char['Z'-'A' + 1];
+            for(int i = 0; i < arrayy.Length; i++)
+            {
+                arrayy[i] = (char)('A' + i);
+            }
+            PrintArray(arrayy[..]);
+            PrintArray(arrayy[5..]);
+
+            Range range_5_10 = 5..10;
+            PrintArray(arrayy[range_5_10]);
+
+            Index last = ^0;
+            Range range_5_last = 5..last;
+            PrintArray(arrayy[range_5_last]);
+
+            PrintArray(arrayy[^4..^1]);
+
+            //2차원 배열
+            WriteLine("2차원 배열");
+            int[,] arr1 = new int[2, 3] { { 1, 2, 3 }, { 4, 5, 6 } };
+            for(int i = 0; i < arr1.GetLength(0); i++)
+            {
+                for(int j = 0; j < arr1.GetLength(1); j++)
+                {
+                    Write($"[{i},{j}] = {arr1[i, j]}");
+                }
+                WriteLine();
+            }
+            WriteLine();
+
+            int[,] arr2 = new int[,] { { 1, 2, 3 }, { 4, 5, 6 } };
+            for (int i = 0; i < arr1.GetLength(0); i++)
+            {
+                for (int j = 0; j < arr1.GetLength(1); j++)
+                {
+                    Write($"[{i},{j}] = {arr1[i, j]}");
+                }
+                WriteLine();
+            }
+            WriteLine();
+
+            int[,] arr3 = { { 1, 2, 3 }, { 4, 5, 6 } };
+            for (int i = 0; i < arr1.GetLength(0); i++)
+            {
+                for (int j = 0; j < arr1.GetLength(1); j++)
+                {
+                    Write($"[{i},{j}] = {arr1[i, j]}");
+                }
+                WriteLine();
+            }
+            WriteLine();
+
+            //가변배열
+            WriteLine("-- 가변배열 --");
+            int[][] jagged = new int[3][];
+            jagged[0] = new int[5] { 1, 2, 3, 4, 5 };
+            jagged[1] = new int[] { 10, 20, 30 };
+            jagged[2] = new int[] { 100, 200 };
+
+            foreach (int[] arr in jagged)
+            {
+                Write($"Lenght: {arr.Length}, ");
+                foreach(var e in arr){
+                    Write($"{e} ");
+                }
+                WriteLine();
+            }
+
+            int[][] jagged2 = new int[2][]
+            {
+                new int[] {1000,2000},
+                new int[4]{6,7,8,9}
+            };
+
+            foreach (int[] arr in jagged2)
+            {
+                Write($"Length: {arr.Length}, ");
+                foreach(var e in arr)
+                {
+                    Write($"{e} ");
+                }
+                WriteLine();
+            }
+
+            //컬렉션 중 AddList
+            WriteLine("-- 컬렉션 AddList --");
+            ArrayList list = new ArrayList();
+            for(int i =0; i<5; i++)
+            {
+                list.Add(i);
+            }
+            foreach(object obj in list)
+            {
+                Write($"{obj} ");
+            }
+            WriteLine();
+
+            list.RemoveAt(2); 
+
+            foreach(object obj in list)
+            {
+                Write($"{obj} ");
+            }
+            WriteLine();
+
+            list.Insert(2, 2);
+            foreach(object obj in list)
+            {
+                Write($"{obj} ");
+            }
+            WriteLine();
+
+            list.Add("abc");
+            list.Add("def");
+            for(int i = 0; i < list.Count; i++)
+            {
+                Write($"{list[i]} ");
+            }
+            WriteLine();
+
+            //컬렉션 queue
+            WriteLine("--컬렉션 Queue --"); 
+            Queue que = new Queue();
+            que.Enqueue(1);
+            que.Enqueue(2);
+            que.Enqueue(3);
+            que.Enqueue(4);
+            que.Enqueue(5);
+
+            while(que.Count > 0)
+            {
+                WriteLine(que.Dequeue()); //dequeue는 실제로 데이터를 꺼냄
+            }
+
+            //컬렉션 Stack
+            WriteLine("-- 컬렉션 stack --");
+            Stack stack = new Stack();
+            stack.Push(1);
+            stack.Push(2);
+            stack.Push(3);
+            stack.Push(4);
+            stack.Push(5);
+
+            while(stack.Count > 0)
+            {
+                WriteLine(stack.Pop());
+            }
+
+            //컬렉션 HashTable
+            Hashtable ht = new Hashtable();
+            ht["하나"] = "one";
+            ht["둘"] = "two";
+            ht["셋"] = "three";
+            ht["넷"] = "four";
+            ht["다섯"] = "five";
+
+            WriteLine(ht["하나"]);
+            WriteLine(ht["둘"]);
+            WriteLine(ht["셋"]);
+            WriteLine(ht["넷"]);
+            WriteLine(ht["다섯"]);
+
+            //컬렌션 초기자
+            WriteLine("-- 컬렉션 초기자 --");
+            int[] arr4 = { 123, 456, 789 };
+
+            ArrayList list2 = new ArrayList(arr4);
+            foreach(object item in list2)
+            {
+                WriteLine($"Arraylist : {item}");
+            }
+            WriteLine();
+
+            Stack stack2 = new Stack(arr4);
+            foreach( object item in stack2)
+            {
+                WriteLine($"Stack:{item}");
+            }
+            WriteLine();
+
+            Queue queue2 = new Queue(arr4);
+            foreach(object item in queue2)
+            {
+                WriteLine($"Queue:{item}");
+            }
+            WriteLine();
+
+            ArrayList list3 = new ArrayList() { 11, 22, 33 };
+            foreach(object item in list3)
+            {
+                WriteLine($"ArrayList2 : {item}");
+            }
+
+            Hashtable ht2 = new Hashtable()
+            {
+                {"하나","1"},
+                {"둘","2"},
+                {"셋",3}
+            };
+
+            WriteLine("HahTable");
+            WriteLine(ht2["하나"]);
+            WriteLine(ht2["둘"]);
+            WriteLine(ht2["셋"]);
+
+            //인덱서
+            WriteLine("-- 인덱서 --");
+            MyList ls = new MyList();
+            for(int i =0;i< 5; i++)
+            {
+                ls[i] = i;
+            }
+            for(int i = 0; i < ls.Length; i++)
+            {
+                WriteLine(ls[i]);
+            }
+
+            //foreach가 가능한 객체 만들기 - yield
+            WriteLine("foreach가 가능한 객체 만들기(yield)");
+            var obj12 = new MyEnumerator();
+            foreach(int i in obj12)
+            {
+                WriteLine($"{i}");
+            }
+
+            //IEnumverator를 상속하는 클래스 구현
+            WriteLine("IEnumverator를 상속하는 클래스 구현");
+
+            MyList2 ls2 = new MyList2();
+            for(int i = 0; i < 5; i++)
+            {
+                ls2[i] = i;
+            }
+            foreach(int e in ls2)
+            {
+                WriteLine(e);
+            }
+        }
+
+    }
+}
